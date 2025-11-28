@@ -1,0 +1,105 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const chatRoutes = require('./routes/chat');
+const adminRoutes = require('./routes/admin');
+
+// Import database
+const sequelize = require('./config/database');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api/', limiter);
+
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    service: 'Growing Chat Backend',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
+// Database connection and server start
+const startServer = async () => {
+  try {
+    // Test database connection
+    await sequelize.authenticate();
+    console.log('✅ Database connection established');
+    
+    // Sync database models
+    await sequelize.sync({ alter: true });
+    console.log('✅ Database models synchronized');
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`
+🚀 Growing Chat Backend Server
+📍 Port: ${PORT}
+🌍 Environment: ${process.env.NODE_ENV || 'development'}
+📊 Database: PostgreSQL
+🔗 Health: http://localhost:${PORT}/health
+
+API Endpoints:
+- POST   /api/auth/register
+- POST   /api/auth/login
+- GET    /api/auth/profile
+- POST   /api/chat/message
+- GET    /api/chat/conversations
+- GET    /api/chat/conversation/:id
+- GET    /api/admin/users
+- GET    /api/admin/analytics
+      `);
+    });
+  } catch (error) {
+    console.error('❌ Unable to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
