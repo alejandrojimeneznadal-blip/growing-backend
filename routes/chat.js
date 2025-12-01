@@ -22,6 +22,11 @@ router.post('/message', authMiddleware, [
     const { message, conversationId } = req.body;
     let conversation;
 
+    // Get user info for n8n
+    const user = await User.findByPk(req.userId, {
+      attributes: ['id', 'name', 'email', 'company']
+    });
+
     // Get or create conversation
     if (conversationId) {
       conversation = await Conversation.findOne({
@@ -66,7 +71,11 @@ router.post('/message', authMiddleware, [
         process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/chat',
         {
           message,
+          conversationId: conversation.id,
           userId: req.userId,
+          userName: user ? user.name : 'Usuario',
+          userEmail: user ? user.email : null,
+          userCompany: user ? user.company : null,
           sessionId: conversation.sessionId,
           category: conversation.category || 'general',
           messageCount
