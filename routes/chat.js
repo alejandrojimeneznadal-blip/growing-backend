@@ -239,6 +239,92 @@ router.get('/conversation/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Update conversation (rename)
+router.patch('/conversation/:id', authMiddleware, [
+  body('title').optional().trim().notEmpty(),
+  body('category').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'general'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const conversation = await Conversation.findOne({
+      where: {
+        id: req.params.id,
+        userId: req.userId
+      }
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation not found'
+      });
+    }
+
+    const updates = {};
+    if (req.body.title) updates.title = req.body.title;
+    if (req.body.category) updates.category = req.body.category;
+
+    await conversation.update(updates);
+
+    res.json({
+      success: true,
+      message: 'Conversation updated',
+      data: conversation
+    });
+  } catch (error) {
+    console.error('Update conversation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating conversation'
+    });
+  }
+});
+
+// Delete conversation
+router.delete('/conversation/:id', authMiddleware, async (req, res) => {
+  try {
+    const conversation = await Conversation.findOne({
+      where: {
+        id: req.params.id,
+        userId: req.userId
+      }
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation not found'
+      });
+    }
+
+    // Delete all messages first
+    await Message.destroy({
+      where: { conversationId: conversation.id }
+    });
+
+    // Delete conversation
+    await conversation.destroy();
+
+    res.json({
+      success: true,
+      message: 'Conversation deleted'
+    });
+  } catch (error) {
+    console.error('Delete conversation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting conversation'
+    });
+  }
+});
+
 // Update conversation status
 router.patch('/conversation/:id/status', authMiddleware, [
   body('status').isIn(['active', 'resolved', 'pending', 'escalated'])
