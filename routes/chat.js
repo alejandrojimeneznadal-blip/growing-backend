@@ -66,16 +66,13 @@ router.post('/message', authMiddleware, [
       });
     }
 
-    // Build message content for DB (don't store base64)
-    const messageContent = image 
-      ? (message ? `[Imagen adjunta] ${message}` : '[Imagen adjunta]')
-      : message;
-
-    // Save user message
+    // Save user message WITH image data
     const userMessage = await Message.create({
       conversationId: conversation.id,
       sender: 'user',
-      content: messageContent
+      content: message || '',
+      imageData: image ? image.data : null,
+      imageMimeType: image ? image.mimeType : null
     });
 
     // Count messages in this conversation
@@ -111,11 +108,11 @@ router.post('/message', authMiddleware, [
         process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/chat',
         n8nPayload,
         {
-          timeout: 60000, // 60 seconds timeout for image processing
+          timeout: 60000,
           headers: {
             'Content-Type': 'application/json'
           },
-          maxContentLength: 10 * 1024 * 1024, // 10MB max
+          maxContentLength: 10 * 1024 * 1024,
           maxBodyLength: 10 * 1024 * 1024
         }
       );
@@ -224,6 +221,7 @@ router.get('/conversations', authMiddleware, async (req, res) => {
         }
       }
     });
+
   } catch (error) {
     console.error('Get conversations error:', error);
     res.status(500).json({
@@ -233,7 +231,7 @@ router.get('/conversations', authMiddleware, async (req, res) => {
   }
 });
 
-// Get single conversation with messages
+// Get single conversation with messages (INCLUDING images)
 router.get('/conversation/:id', authMiddleware, async (req, res) => {
   try {
     const conversation = await Conversation.findOne({
@@ -244,7 +242,8 @@ router.get('/conversation/:id', authMiddleware, async (req, res) => {
       include: [{
         model: Message,
         as: 'messages',
-        order: [['createdAt', 'ASC']]
+        order: [['createdAt', 'ASC']],
+        attributes: ['id', 'sender', 'content', 'imageData', 'imageMimeType', 'createdAt', 'isRead']
       }]
     });
 
@@ -271,6 +270,7 @@ router.get('/conversation/:id', authMiddleware, async (req, res) => {
       success: true,
       data: conversation
     });
+
   } catch (error) {
     console.error('Get conversation error:', error);
     res.status(500).json({
@@ -319,6 +319,7 @@ router.patch('/conversation/:id', authMiddleware, [
       message: 'Conversation updated',
       data: conversation
     });
+
   } catch (error) {
     console.error('Update conversation error:', error);
     res.status(500).json({
@@ -357,6 +358,7 @@ router.delete('/conversation/:id', authMiddleware, async (req, res) => {
       success: true,
       message: 'Conversation deleted'
     });
+
   } catch (error) {
     console.error('Delete conversation error:', error);
     res.status(500).json({
@@ -411,6 +413,7 @@ router.patch('/conversation/:id/status', authMiddleware, [
       message: 'Conversation status updated',
       data: conversation
     });
+
   } catch (error) {
     console.error('Update conversation status error:', error);
     res.status(500).json({
@@ -458,6 +461,7 @@ router.post('/conversation/:id/rate', authMiddleware, [
       message: 'Thank you for your feedback',
       data: conversation
     });
+
   } catch (error) {
     console.error('Rate conversation error:', error);
     res.status(500).json({
@@ -503,6 +507,7 @@ router.get('/search', authMiddleware, async (req, res) => {
       success: true,
       data: conversations
     });
+
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({
