@@ -21,7 +21,15 @@ const Message = sequelize.define('Message', {
   },
   content: {
     type: DataTypes.TEXT,
-    allowNull: false
+    allowNull: true  // Cambiado a true (puede ser solo imagen)
+  },
+  imageData: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  imageMimeType: {
+    type: DataTypes.STRING(50),
+    allowNull: true
   },
   attachments: {
     type: DataTypes.JSONB,
@@ -50,7 +58,7 @@ const Message = sequelize.define('Message', {
   }
 }, {
   timestamps: true,
-  paranoid: true, // Soft delete
+  paranoid: true,
   indexes: [
     {
       fields: ['conversationId']
