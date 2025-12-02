@@ -132,7 +132,10 @@ router.post('/message', authMiddleware, [
       });
 
       // Force update conversation timestamp for correct ordering
-      await conversation.update({ updatedAt: new Date() });
+      await Conversation.update(
+        { updatedAt: new Date() },
+        { where: { id: conversation.id } }
+      );
 
       // Update conversation title if n8n returned one
       if (n8nResponse.data.title) {
