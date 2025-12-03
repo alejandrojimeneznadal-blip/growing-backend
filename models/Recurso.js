@@ -21,16 +21,13 @@ const Recurso = sequelize.define('Recurso', {
   },
   url: {
     type: DataTypes.STRING(500),
-    allowNull: true // Solo para videos (Loom)
+    allowNull: true
   },
   contenido: {
     type: DataTypes.TEXT,
-    allowNull: true // Texto extraído del PDF o contenido del artículo
-  },
-  embedding: {
-    type: DataTypes.ARRAY(DataTypes.FLOAT),
     allowNull: true
   },
+  // embedding se maneja con SQL directo (tipo vector de pgvector)
   embeddingStatus: {
     type: DataTypes.ENUM('pending', 'processing', 'completed', 'error'),
     defaultValue: 'pending'
