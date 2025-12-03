@@ -8,6 +8,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const adminRoutes = require('./routes/admin');
+const recursosRoutes = require('./routes/recursos');
 
 // Import database
 const sequelize = require('./config/database');
@@ -29,14 +30,15 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parsing middleware - aumentar límite para PDFs
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/recursos', recursosRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -94,6 +96,9 @@ API Endpoints:
 - GET    /api/chat/conversation/:id
 - GET    /api/admin/users
 - GET    /api/admin/analytics
+- POST   /api/recursos/buscar
+- GET    /api/recursos
+- POST   /api/recursos
       `);
     });
   } catch (error) {
