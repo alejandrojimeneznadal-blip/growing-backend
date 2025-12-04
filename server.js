@@ -3,43 +3,36 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-
 // Import routes
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const adminRoutes = require('./routes/admin');
 const recursosRoutes = require('./routes/recursos');
-
 // Import database
 const sequelize = require('./config/database');
-
 const app = express();
+app.set('trust proxy', 1);  // Para funcionar detrás de proxy/load balancer
 const PORT = process.env.PORT || 3001;
-
 // Security middleware
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
-
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use('/api/', limiter);
-
 // Body parsing middleware - aumentar límite para PDFs
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/recursos', recursosRoutes);
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
@@ -48,7 +41,6 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -58,7 +50,6 @@ app.use((err, req, res, next) => {
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -66,7 +57,6 @@ app.use((req, res) => {
     message: 'Route not found'
   });
 });
-
 // Database connection and server start
 const startServer = async () => {
   try {
@@ -86,7 +76,6 @@ const startServer = async () => {
 🌍 Environment: ${process.env.NODE_ENV || 'development'}
 📊 Database: PostgreSQL
 🔗 Health: http://localhost:${PORT}/health
-
 API Endpoints:
 - POST   /api/auth/register
 - POST   /api/auth/login
@@ -106,5 +95,4 @@ API Endpoints:
     process.exit(1);
   }
 };
-
 startServer();
