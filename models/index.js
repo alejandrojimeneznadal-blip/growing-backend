@@ -3,6 +3,7 @@ const User = require('./User');
 const Conversation = require('./Conversation');
 const Message = require('./Message');
 const Recurso = require('./Recurso');
+const Chunk = require('./Chunk');
 
 // Define relationships
 User.hasMany(Conversation, {
@@ -22,10 +23,22 @@ Message.belongsTo(Conversation, {
   as: 'conversation'
 });
 
+// Recurso - Chunk
+Recurso.hasMany(Chunk, {
+  foreignKey: 'recursoId',
+  as: 'chunks',
+  onDelete: 'CASCADE'
+});
+Chunk.belongsTo(Recurso, {
+  foreignKey: 'recursoId',
+  as: 'recurso'
+});
+
 module.exports = {
   sequelize,
   User,
   Conversation,
   Message,
-  Recurso
+  Recurso,
+  Chunk
 };
