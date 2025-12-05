@@ -24,6 +24,11 @@ router.post('/message', authMiddleware, [
     }
 
     const { message, conversationId, image, category } = req.body;
+
+    // Log temporal para debug
+console.log('=== CATEGORY DEBUG ===');
+console.log('Received category:', category);
+console.log('Full body:', JSON.stringify(req.body, null, 2));
     
     // Require either message or image
     if (!message && !image) {
