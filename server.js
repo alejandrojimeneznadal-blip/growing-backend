@@ -28,8 +28,11 @@ app.use(cors({
 
 // Rate limiting - solo para rutas públicas (auth y chat)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // 60 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiadas peticiones, intenta de nuevo en un minuto' }
 });
 
 // Body parsing middleware - aumentar límite para PDFs
