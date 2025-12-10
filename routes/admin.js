@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { Op } = require('sequelize');
-const { User, Conversation, Message } = require('../models');
+const { User, Conversation, Message, Feedback } = require('../models');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const sequelize = require('../config/database');
 
@@ -339,6 +339,127 @@ router.post('/conversations/:id/message', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error sending message'
+    });
+  }
+});
+
+// Get feedback statistics for metrics dashboard
+router.get('/feedback-stats', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const dateFilter = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) dateFilter.createdAt[Op.gte] = new Date(startDate);
+      if (endDate) dateFilter.createdAt[Op.lte] = new Date(endDate);
+    }
+
+    // Get basic feedback stats
+    const [
+      totalFeedback,
+      resolvedYes,
+      resolvedNo,
+      escalatedCount,
+      avgSpeedRating,
+      avgQualityRating,
+      clearStepsYes,
+      clearStepsNo
+    ] = await Promise.all([
+      Feedback.count({ where: dateFilter }),
+      Feedback.count({ where: { ...dateFilter, resolved: true } }),
+      Feedback.count({ where: { ...dateFilter, resolved: false } }),
+      Feedback.count({ where: { ...dateFilter, escalated: true } }),
+      Feedback.aggregate('speedRating', 'AVG', { where: { ...dateFilter, speedRating: { [Op.ne]: null } } }),
+      Feedback.aggregate('qualityRating', 'AVG', { where: { ...dateFilter, qualityRating: { [Op.ne]: null } } }),
+      Feedback.count({ where: { ...dateFilter, clearSteps: true } }),
+      Feedback.count({ where: { ...dateFilter, clearSteps: false } })
+    ]);
+
+    // Get escalations by category
+    const escalationsByCategory = await Feedback.findAll({
+      where: {
+        ...dateFilter,
+        escalated: true,
+        escalatedCategory: { [Op.ne]: null }
+      },
+      attributes: [
+        'escalatedCategory',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['escalatedCategory'],
+      raw: true
+    });
+
+    // Get daily trend (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const dailyTrend = await sequelize.query(`
+      SELECT
+        DATE("createdAt") as date,
+        COUNT(*) as total,
+        SUM(CASE WHEN resolved = true THEN 1 ELSE 0 END) as resolved,
+        SUM(CASE WHEN resolved = false THEN 1 ELSE 0 END) as not_resolved,
+        SUM(CASE WHEN escalated = true THEN 1 ELSE 0 END) as escalated
+      FROM "Feedbacks"
+      WHERE "createdAt" >= :startDate
+      GROUP BY DATE("createdAt")
+      ORDER BY date ASC
+    `, {
+      replacements: { startDate: thirtyDaysAgo },
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    // Get total conversations for context
+    const totalConversations = await Conversation.count({ where: dateFilter });
+
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          totalFeedback,
+          totalConversations,
+          feedbackRate: totalConversations > 0
+            ? Math.round((totalFeedback / totalConversations) * 100)
+            : 0
+        },
+        resolution: {
+          resolved: resolvedYes,
+          notResolved: resolvedNo,
+          rate: totalFeedback > 0
+            ? Math.round((resolvedYes / totalFeedback) * 100)
+            : 0
+        },
+        ratings: {
+          speed: avgSpeedRating ? parseFloat(avgSpeedRating.toFixed(2)) : null,
+          quality: avgQualityRating ? parseFloat(avgQualityRating.toFixed(2)) : null
+        },
+        clarity: {
+          clear: clearStepsYes,
+          notClear: clearStepsNo,
+          rate: (clearStepsYes + clearStepsNo) > 0
+            ? Math.round((clearStepsYes / (clearStepsYes + clearStepsNo)) * 100)
+            : 0
+        },
+        escalation: {
+          total: escalatedCount,
+          rate: totalFeedback > 0
+            ? Math.round((escalatedCount / totalFeedback) * 100)
+            : 0,
+          byCategory: escalationsByCategory.reduce((acc, item) => {
+            acc[item.escalatedCategory] = parseInt(item.count);
+            return acc;
+          }, {})
+        },
+        trend: dailyTrend
+      }
+    });
+  } catch (error) {
+    console.error('Feedback stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching feedback statistics'
     });
   }
 });
