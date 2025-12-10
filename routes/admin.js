@@ -111,6 +111,49 @@ router.patch('/users/:id', async (req, res) => {
   }
 });
 
+// Delete user (and their conversations)
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Prevent deleting admin users
+    if (user.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete admin users'
+      });
+    }
+
+    // Prevent self-deletion
+    if (user.id === req.userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete your own account'
+      });
+    }
+
+    // Delete user (cascades to conversations, messages, feedback)
+    await user.destroy();
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting user'
+    });
+  }
+});
+
 // Get all conversations (admin view)
 router.get('/conversations', async (req, res) => {
   try {
