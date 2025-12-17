@@ -33,7 +33,7 @@ const Recurso = sequelize.define('Recurso', {
     defaultValue: 'pending'
   },
   categoria: {
-    type: DataTypes.ENUM('comercial', 'meta-ads', 'gohighlevel', 'general'),
+    type: DataTypes.ENUM('comercial', 'meta-ads', 'gohighlevel', 'direccion', 'general'),
     defaultValue: 'general'
   },
   activo: {

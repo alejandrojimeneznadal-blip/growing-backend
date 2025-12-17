@@ -9,7 +9,7 @@ const { Op } = require('sequelize');
 router.post('/message', authMiddleware, [
   body('message').optional().trim(),
   body('conversationId').optional().isUUID(),
-  body('category').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'general']),
+  body('category').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'direccion', 'general']),
   body('image').optional().isObject(),
   body('image.data').optional().isString(),
   body('image.mimeType').optional().isString(),
@@ -317,7 +317,7 @@ router.get('/conversation/:id', authMiddleware, async (req, res) => {
 // Update conversation (rename)
 router.patch('/conversation/:id', authMiddleware, [
   body('title').optional().trim().notEmpty(),
-  body('category').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'general'])
+  body('category').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'direccion', 'general'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

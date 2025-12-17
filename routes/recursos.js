@@ -157,7 +157,7 @@ router.get('/:id', authMiddleware, adminMiddleware, async (req, res) => {
 router.post('/', authMiddleware, adminMiddleware, [
   body('tipo').isIn(['video', 'pdf', 'articulo']),
   body('titulo').notEmpty().trim(),
-  body('categoria').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'general'])
+  body('categoria').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'direccion', 'general'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -216,7 +216,7 @@ router.post('/', authMiddleware, adminMiddleware, [
 router.put('/:id', authMiddleware, adminMiddleware, [
   body('tipo').optional().isIn(['video', 'pdf', 'articulo']),
   body('titulo').optional().notEmpty().trim(),
-  body('categoria').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'general'])
+  body('categoria').optional().isIn(['comercial', 'meta-ads', 'gohighlevel', 'direccion', 'general'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

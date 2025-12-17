@@ -21,7 +21,7 @@ const Conversation = sequelize.define('Conversation', {
     defaultValue: 'Nueva Consulta'
   },
   category: {
-    type: DataTypes.ENUM('comercial', 'meta-ads', 'gohighlevel', 'general', 'delegado'),
+    type: DataTypes.ENUM('comercial', 'meta-ads', 'gohighlevel', 'direccion', 'general', 'delegado'),
     defaultValue: 'general'
   },
   status: {
